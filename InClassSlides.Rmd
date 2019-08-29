@@ -1,0 +1,1398 @@
+---
+title: 'RNA-Seq in RStudio'
+author:
+- Nick LeCompte \newline
+date: "8/29/2019"
+output:
+  beamer_presentation:
+    includes:
+      in_header: mypreamble.tex
+    slide_level: 3
+    theme: Madrid
+    pandoc_args: "--highlight=breezedark"
+  ioslides_presentation: default
+institute: |
+  | Research Computing - Genomics  
+  | Boston Children's Hospital
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+### Outline
+
+- Intro to R/RStudio
+- Overview of RNA-seq experiments
+- Differential expression analysis in R
+- Pathway analysis
+- Exercise: preparing data from GEO for analysis
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.6\textheight]{images/Sticker_RStudio_RNASeq.png} 
+\end{figure}
+
+### Outline
+
+- **Intro to R/RStudio**
+- Overview of RNA-seq experiments
+- Differential expression analysis in R
+- Pathway analysis
+- Exercise: preparing data from GEO for analysis
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.6\textheight]{images/Sticker_RStudio_RNASeq_0pct.png} 
+\end{figure}
+
+### Note
+
+- Throughout this presentation we will be providing R commands for you to enter
+- Some of these commands are data processing required to complete the course, while others are just for viewing data and are optional
+- If the command is marked as **[REQUIRED]** then it is necessary to complete the course.
+
+### Quick introduction to R
+
+- R is a statistical programming language.
+- R is also a program that analyzes data (using R code).
+- We will be using it as a more powerful version of Excel.
+- We will be explaining the R commands as we go along.
+  - The important thing is not to understand every last technical thing we do in R, but to understand why we're doing it.
+
+### Quick introduction to RStudio
+
+- Go to File > New Project
+- Select "New Directory"
+
+### Quick introduction to RStudio
+
+\small
+- RStudio is an application that makes data analysis in R much more convenient
+- While R is a text-based program that only runs R code, RStudio provides a graphical interface and separate tools for editing text and viewing files
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.6\textheight]{images/rstudio_start.png} 
+
+\end{figure}
+
+
+### RStudio Console
+
+- The Console is where you enter commands to R
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.7\textheight]{images/rstudio_console.png} 
+\end{figure}
+
+
+### RStudio text editor
+
+- RStudio has a text editor, for writing R scripts and viewing text data
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.7\textheight]{images/rstudio_texteditor.png} 
+
+\end{figure}
+
+
+### RStudio Environment
+
+- In the Environment window are any data, calculation results, or functions that have been loaded into our R session
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.7\textheight]{images/rstudio_environment.png} 
+
+\end{figure}
+
+### RStudio Files window
+
+- In the Files window you can view any files in your current **working directory**
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.7\textheight]{images/rstudio_fileexplorer.png} 
+
+\end{figure}
+
+### RStudio Plot window
+
+- In the same window as Files there is a tab called Plots
+- When you make a graph in R (using a text command in the R console) it will appear here
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.5\textheight]{images/rstudio_plot.png} 
+
+\end{figure}
+
+### Package installation
+
+- **[REQUIRED]**Type the following into your Console:
+
+```{r, echo = TRUE, eval = FALSE}
+library(airway)
+```
+
+- If you see a number of messages that say "Loading required package..." then your R installation is (hopefully) ready for this course
+
+- If you see "there is no package called 'airway'" then please put "install_libs.R" into your working directory and enter
+
+```{r, echo = TRUE, eval = FALSE}
+source("install_libs.R")
+```
+
+### Package installation
+
+- R will ask you some y/n questions:
+  - "Update all/some/none? [a/s/n]:" **PLEASE ENTER n**
+  - "Do you want to install from sources the package which needs compilation?" **PLEASE ENTER N**
+  - "Packages which are only available in source form, and may need compilation of
+  C/C++/Fortran..." **PLEASE ENTER Y**
+  - This might take a while, but I'll be speaking for a bit...
+
+### Outline
+
+- Intro to R/RStudio
+- **Overview of RNA-seq experiments**
+- Differential expression analysis in R
+- Pathway analysis
+- Exercise: preparing data from GEO for analysis
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.6\textheight]{images/Sticker_RStudio_RNASeq_10pct.png} 
+\end{figure}
+
+### High-level overview of RNA-seq
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.8\textheight]{images/RNAseq_analysis_pipeline.png}
+\end{figure}
+
+
+### Different types of RNA-seq experiments
+
+- Bulk vs single-cell
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.7\textheight]{images/bulk_v_sc.png} 
+
+\small
+(figure via https://omictools.com/blog/single-cell-rna-sequencing-immunology)
+\end{figure}
+
+### Different types of RNA-seq experiments
+
+\normalsize
+- total, Poly(A) selection, and miRNA
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.7\textheight]{images/TypesOfRNASeq.png} 
+\end{figure}
+
+
+### Alignment and gene quantification
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.8\textheight]{images/align.JPG}
+\end{figure}
+
+### Alignment and gene quantification
+
+Jim Vincent (of BioGrids) taught a class on this:
+
+\ 
+
+\begin{centering}
+
+\textbf{Using BioGrids for RNA-Seq on AWS and Your Laptop}
+
+James Vincent
+
+Bioinformatics Software Specialist
+
+Harvard Medical School, SBGrid/BioGrids
+
+\end{centering}
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.3\textheight]{images/Sticker_BioGrids_Consortium.png}
+\end{figure}
+
+### Outline
+
+- Intro to R/RStudio**
+- Overview of RNA-seq experiments
+- **Differential expression analysis in R**
+- Pathway analysis
+- Exercise: preparing data from GEO for analysis
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.6\textheight]{images/Sticker_RStudio_RNASeq_20pct.png} 
+\end{figure}
+
+
+### The `airway` data set
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.1\textheight]{images/airwaycite.png}
+\end{figure}
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.7\textheight]{images/AirwayData.png}
+\end{figure}
+
+### `library(airway)`
+
+- The `airway` data has been specifically curated by Bioconductor and is available for download as an R **package**
+- **[REQUIRED]** To load this package into your R session, type
+
+```{r, echo = TRUE, message = FALSE}
+library(airway)
+```
+
+in your R console and hit enter.
+
+- This command tells the R session that any data or libraries with `airway` can now be used.
+
+
+### `data(airway)`
+
+- Although you have told R to load the *package*, the actual dataset has not been loaded into memory.
+- **[REQUIRED]** Type
+
+```{r, echo=TRUE, message = FALSE}
+data(airway)
+```
+
+in your R console and hit enter.
+
+- This command loads all the data from the `airway` package into one object, which is in a variable called `airway.`
+
+### Assay data
+
+- Now that `airway`'s data is loaded into R, we can look at the experimental data.
+- To see the actual by-gene and by-sample expression (as read counts):
+
+```{r, eval=FALSE,echo=TRUE}
+assay(airway)
+```
+
+\tiny
+```{r, eval=TRUE,echo=FALSE}
+head(assay(airway)[,c(1:5)],3)
+```
+
+### Assay data
+
+- the `airway` object in R's memory contains a great deal of information, including metadata about the samples
+- `assay` is a way to access just the raw counts
+- Note that rows are annotated by ENSEMBL IDs.
+- One of the first things we we will do is replace these with gene symbols.
+
+### Cleaning the data
+
+Instead of the Ensembl IDs and sample ids, we want to make this data easier to read:
+
+- Replace the Ensembl ID row names with gene symbols
+   - Need to find a mappng between Ensembl IDs and symbols
+   - Ordinarily we would use a real database, but there are technical problems using this on macOS (as of last week), so instead I supplied the mapping directly
+- Replace the sample IDs with something more descriptive
+  - We will do "cell line" + "trt/untrt"
+
+### Cleaning the data
+
+- You should have received a CSV file, "gene_symbols.csv".
+- Save it to your project directory (same as the install_libs.R script)
+- **[REQUIRED]** Enter the following into your R session:
+
+\small
+
+```{r, eval = TRUE, echo = TRUE, message = FALSE}
+gene_symbols <- read.csv("gene_symbols.csv")
+```
+
+- This reads the data in the obvious way (bringing the headers with it)
+- The data is loaded into a **data frame**, which is a container for data in R
+- Try this in your R console:
+
+```{r, eval = FALSE, echo = TRUE, message = FALSE}
+gene_symbols$ensembl
+gene_symbols$symbol
+```
+
+### Cleaning the data
+
+- **[REQUIRED]** Enter the following into your R session:
+
+\small
+
+```{r, eval = TRUE, echo = TRUE, message = FALSE}
+gene_symbolsfixed <- as.character(gene_symbols$symbol)
+gene_symbolsfixed[is.na(gene_symbols$symbol)] <-
+  rownames(airway)[is.na(gene_symbols$symbol)]
+```
+
+- This addresses an annoying data issue: sometimes an Ensembl ID won't have a match to a symbol
+- If this is the case, R returns NA - but we don't want to have NAs as our row names (we want every row to be distinct)
+- If a mapping returns NA, we just use the original Ensembl ID
+- `as.character` tells R to interpet the gene symbols as strings
+
+### Cleaning the data
+
+- **[REQUIRED]** Enter the following into your R session:
+
+\small
+
+```{r, eval = TRUE, echo = TRUE, message = FALSE}
+rowData(airway)[,"symbol"] <- gene_symbols$symbol
+rowData(airway)[,"ensembl"] <- rownames(airway)
+```
+
+- `rowData(airway)` is an R **data frame**, which is like a matrix, but with some additional data and structure
+- Here we the symbols and Ensembl ids as specific columns on the row data so we can access them later
+
+### Cleaning the data
+
+- **[REQUIRED]** Enter the following into your R session:
+
+\small
+
+```{r, eval = TRUE, echo = TRUE, message = FALSE}
+rownames(airway) <- make.names(gene_symbolsfixed)
+```
+
+- This replaces the Ensembl ID rownames with the symbols (mostly)
+- Intead of typing Ensembl IDs to access counts, we can type gene symbols
+- If we ever need to work with Ensembl IDs specifically we have that as an accessible column in rowData
+- `make.names` addresses the problem of duplicate symbols matching Ensembl ids - it adds numbers to the ends of duplicates
+
+### Cleaning the data
+
+- **[REQUIRED]** Enter the following into your R session:
+
+\small
+
+```{r, eval = TRUE, echo = TRUE, message = FALSE}
+fixed_names <- paste(colData(airway)$cell,
+                    substring(colData(airway)$dex,1,1),
+                    sep="-")
+colnames(airway) <- fixed_names
+```
+
+- `paste` takes two strings and appends them, with the characters in `sep` separating them
+
+```{r, echo = TRUE}
+paste("Hello", "there", sep = "...")
+```
+
+- `substring(string,i,j)` takes a string (ie a block of text) and returns the characters between i and j:
+
+```{r, echo=TRUE}
+substring("Hello",2,4)
+```
+
+### Cleaning the data
+
+- So what we're doing here is taking the cell names and pasting the dexamethasone treatment, abbreviating with  't' and 'u' instead of 'trt' and 'untrt' (just so things fit on graphs better)
+- Afterwards, just like with `rownames`, we set the column names
+- This means we can access data using "N61311-t" instead of "SRR1039509" and visually inspect whether a sample is control or treatment
+
+\normalsize
+
+### After relabelling
+
+You can check the relabelling in R
+
+```{r, echo=TRUE, eval=FALSE}
+assay(airway)
+```
+
+\small
+```{r, eval=TRUE,echo=FALSE}
+head(assay(airway)[,c(1:5)],3)
+```
+
+\normalsize
+
+- This will make the data easier to read and quickly work with.
+
+
+### Looking at raw expression values
+
+- Specific values (expression for a given gene and a given sample)
+
+\small
+```{r,echo=TRUE}
+assay(airway)["SPARC","N061011-u"]
+```
+
+
+### Find expression for a given gene
+
+- We can access the rows (all expression values across samples for a specified gene)
+
+\small
+
+```{r,echo=TRUE, eval=FALSE}
+assay(airway)["SPARC",]
+```
+
+```{r,echo=FALSE, eval=TRUE}
+assay(airway)["SPARC",c("N61311-u","N61311-t", "N052611-u", "N052611-t")]
+```
+
+### Find expression for a given sample
+
+\normalsize
+- Columns (all expression values across genes for a specific sample):
+
+\small
+```{r,echo=TRUE, eval=FALSE}
+assay(airway)[,"N061011-u"]
+```
+
+```{r,echo=FALSE, eval=TRUE}
+head(assay(airway)[,"N061011-u"],4)
+```
+
+
+### Looking at the data across experiments
+
+\small
+
+- We want to investigate the issue with read length mentioned earlier
+- One of the best ways to do this is a boxplot for each sample, drawn from the
+- First, for graphing, let's find all the genes that have at least one sample with nonzero expression:
+
+```{r, echo=TRUE, eval = TRUE}
+nonzero_rows <- assay(airway)[
+                      apply(assay(airway),
+                      1,
+                      function(row) all(row != 0)),]
+```
+
+- The `apply` function applies a function to each row of the matrix `assay(airway)`
+- The function being applied is `row => all(row != 0)`, which
+  - returns TRUE if there is at least one nonzero value in the row
+  - returns FALSE if all the values in the row are 0
+
+### Illustration of `apply` function
+
+```{r, echo = FALSE, eval = TRUE}
+samplehead <- head(assay(airway)[,c(1,2,3)],3)
+samplehead <- cbind(samplehead,c("TRUE","FALSE","TRUE"))
+colnames(samplehead)[4] <- "apply"
+samplehead
+```
+
+
+### Graphing the results
+
+\small
+
+```{r, eval=FALSE, echo = TRUE}
+boxplot(log10(nonzero_rows),
+        ylab="Log10 count values",
+        names=colnames(nonzero_rows),
+        las=2)
+```
+
+- `boxplot` simply draws a boxplot, with each column of the input matrix being a separate plot
+- `log10(nonzero_counts)` takes the base-10 log of each count value
+- `ylab` sets the label for the x-axis and y-axis
+- `names` refers to the names of each column of data
+- `las=2` rotates the labels to be perpendicular to the axis
+
+### Graphing the results
+
+\small
+
+```{r, eval=TRUE, echo = FALSE}
+boxplot(log10(nonzero_rows),
+        ylab="Log10 count values",
+        names=colnames(nonzero_rows),
+        las=2)
+```
+
+### Normalizing the data with `DESeq2`
+
+- Normalizing the data well requires sophistication: we need to align the average expression between samples without being too biased towards high-count or low-count genes
+- The `DESeq2` Bioconductor package will do this for us
+- **[REQUIRED]** First we must load the `airway` data into a `DESeqDataSet` object.
+
+\small
+
+```{r, echo=TRUE, message=FALSE, eval = FALSE}
+library(DESeq2)
+airway_deseq <-
+  DESeqDataSet(airway,
+               design = ~ cell + dex)
+```
+
+```{r, warning=FALSE, echo=FALSE, message=FALSE, eval = TRUE}
+library(DESeq2)
+airway_deseq <-
+  DESeqDataSet(airway,
+               design = ~ cell + dex)
+```
+
+### Normalizing the data with `DESeq2`
+
+- `DESeqDataSet` parses a `SummarizedExperiment` into a different kind of object
+  - What this really does is prepares a `SummarizedExperiment` for differential expression analysis, including some checks on the data
+- The `design` argument describes the relationship between dependent and independent variables:
+  - "cell" and "dex" are independent variables
+  - there are no cross terms
+    - (whether or not a sample was treated with dexamethasone is independent of what cell it is)
+  - this formula tells R what the experimental factors are and how to make the comparison for differential expression
+
+### Overview of `DESeqDataSet`
+
+- The `DESeqDataSet` is similar to the `SummarizedExperiment` we looked at with `airway`
+  - it contains the read count expression data with extra metadata
+  - For `DESeqDataSet` this extra metadata includes the results of differential expression analysis
+  - Currently this metadata is empty: we will run the analysis on `airway_deseq` to append the results as we go along.
+
+
+### Overview of `DESeqDataSet`
+
+Enter `airway_deseq` into your R console to look at it.
+
+\scriptsize
+```{r, echo = TRUE}
+airway_deseq
+```
+
+### Overview of `DESeqDataSet`
+
+- We can access the count data using `counts`:
+
+\small
+
+```{r, echo=TRUE, eval=FALSE}
+counts(airway_deseq)
+```
+
+\tiny
+```{r, echo=FALSE, eval=TRUE}
+head(counts(airway_deseq),5)
+```
+
+\normalsize
+
+- This is the exact same as `assay(airway)` from before.
+
+### Overview of `DESeqDataSet`
+
+- `airway_deseq` also carries the experiment metadata from `airway`:
+
+\small
+
+```{r, echo=TRUE, eval = FALSE}
+rowData(airway_deseq)
+```
+
+```{r, echo=FALSE, eval = TRUE}
+head(rowData(airway_deseq),5)
+```
+
+### Normalizing the data with `DESeq2`
+
+- **[REQUIRED]** We apply the `estimateSizeFactors` function (included in the `DESeq2` package), which normalizes the count data according to `DESeq2`'s methodology:
+
+```{r, echo=TRUE}
+airway_deseq <- estimateSizeFactors(airway_deseq)
+```
+
+Other R packages can use different normalization methods.
+
+### Normalizing the data with `DESeq2`
+
+- We can still access the raw counts:
+
+```{r, echo=TRUE, eval=FALSE}
+counts(airway_deseq)
+```
+
+But we can also view the *normalized* counts:
+
+```{r, echo=TRUE, eval=FALSE}
+counts(airway_deseq, normalized = TRUE)
+```
+\tiny
+```{r, echo=FALSE, eval=TRUE, message = FALSE}
+head(counts(airway_deseq, normalized = TRUE),5)
+```
+\normalsize
+
+### Normalizing the data with `DESeq2`
+
+Let's see how the normalization fixed the boxplot:
+
+\scriptsize
+```{r, echo=TRUE, eval = FALSE}
+nonzero_normalized_rows <-
+  apply(counts(airway_deseq,normalized=TRUE),
+        1, function(row) all(row != 0))
+
+nonzero_normalized_counts <-
+  counts(airway_deseq,normalized=TRUE)[nonzero_normalized_rows,]
+
+boxplot(log10(nonzero_normalized_counts),
+        ylab="Log10 normalized count values",
+        names=colnames(nonzero_normalized_counts),
+        las=2)
+```
+
+\normalsize
+- Note that this is very similar to the boxpots you made earlier, only we used the normalized counts.
+
+### Normalizing the data with `DESeq2`
+
+```{r, fig.height = 4, echo=FALSE, eval = TRUE}
+nonzero_normalized_rows <-
+  apply(counts(airway_deseq,normalized=TRUE),
+        1, function(row) all(row != 0))
+nonzero_normalized_counts <- counts(airway_deseq,normalized=TRUE)[nonzero_normalized_rows,]
+boxplot(log10(nonzero_normalized_counts),
+        ylab="Log10 normalized count values",
+        names=colnames(nonzero_normalized_counts),
+        las=2)
+```
+
+- This looks better: the averages and inter-quartile ranges are very well-aligned
+- Since only the normalized counts are valid for comparing across samples, we will almost always refer to these rather than the actual raw counts.
+
+### Quick summary
+
+\small
+
+- The actual differential expression analysis occurs late in the RNA-Seq analysis pipeline:
+  - *in vitro* experiment completed and QCed
+  - *in silico* alignment completed and QCed
+  - data is normalized across samples (normalization is QCed)
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.5\textheight]{images/RNA-seq_analysis_pipeline_difftest.png}
+
+\end{figure}
+
+Now we are ready to actually look at differences in gene expression.
+
+
+### What does differential expression look like?
+
+- SCYL3 encodes a protein involved in linking the cytoskeleton to the plasma membrane
+- *A priori* we would not assume its expression to be impacted by dexamethasone treatment (unless somebody has a reasonable molecular or symptomatic explanation)
+  - Can we confirm this just by looking at the graph?
+
+```{r, echo=TRUE, eval=TRUE}
+scyl3_counts <-
+  counts(airway_deseq,normalized=TRUE)["SCYL3",]
+```
+
+### What does differential expression look like?
+
+```{r,fig.height = 4, echo=TRUE, eval = FALSE}
+barplot(scyl3_counts,las=1)
+abline(h = mean(scyl3_counts))
+```
+
+- `barplot` draws a bar chart of the input data
+  - `las=1` tells R that we want the barplot to be horizontal
+- `abline` draws a horizontal line at the supplied value
+  - `abline(h = mean(scyl3_counts))` means "take the average of all SCYL3 expression values, and plot a horitzontal line at this average"
+
+### What does differential expression look like?
+
+```{r,fig.height = 4, echo=FALSE, eval = TRUE}
+barplot(scyl3_counts,las=1)
+abline(h = mean(scyl3_counts))
+```
+
+\small
+
+- Intuitively, this gene does not look differentially expressed:
+
+  - small deviations from the mean
+  - no consistent trend between control and treatment groups
+
+- In this case, the variation in the normalized expression between samples is due to random chance (nothing to do with dexamethasone treatment)
+
+### What does differential expression look like?
+
+If we look at the name of the paper `airway` is based on:
+
+\begin{figure}
+\textbf{RNA-Seq Transcriptome Profiling Identifies CRISPLD2 as a Glucocorticoid Responsive Gene that Modulates Cytokine Function in Airway Smooth Muscle Cells}
+\end{figure}
+
+...then we can probably guess that CRISPLD2 is differentially expressed under dexamethasone treatment.
+
+Let's look at the actual normalized counts for this gene:
+
+```{r, echo=TRUE, eval=TRUE}
+crispld_counts <-
+  counts(airway_deseq,normalized=TRUE)["CRISPLD2",]
+```
+
+### What does differential expression look like?
+
+```{r, fig.height=4, echo=TRUE}
+barplot(crispld_counts,las=1)
+abline(h = mean(crispld_counts))
+```
+
+### What does differential expression look like?
+
+This certainly looks like differential expression:
+
+- sample counts vary dramatically from the mean count
+- there is a consistent trend (of upregulation) between untreated and treated samples
+- it is probably the case that these deviations from the mean are **not** caused solely by random chance
+
+### Unavoidable randomness in expression data
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.8\textheight]{images/rnaseq_diff_expr.png}
+\end{figure}
+
+### Unavoidable randomness in expression data
+
+A specific sample's normalized expression can differ from the cross-sample normalized mean for two different reasons:
+
+1) Random chance (and the expression difference tends to be small in scope)
+2) Biologically meaningful differences (expression difference tends to be larger)
+
+But in principle it's impossible to tell the difference between these cases.
+
+Instead, we can use statistics to inform our decisions:
+
+"We can say with 95% confidence that CRISPLD is differentially upregulated"
+
+### Randomness modelling
+
+- We need a reasonable way to model the inherent, unavoidable randomness.
+- Roughly, this entails calculating the sample-wise standard deviation for each gene with the normalized expressions.
+- However, genetic data is slightly more complicated.
+
+### Randomness modelling
+
+For a given gene, we need two parameters to model the inherent variability in its expression:
+
+1) The gene's "expected" expression, expressed as a fraction of the total expression (i.e., the count for the gene divided by the total count for the RNA-seq experiment)
+2) A *dispersion parameter*, which models the variability in overall gene expression between samples
+
+`DESeq2` will estimate this dispersion for us when we run the analysis.
+
+### Performing the hypothesis test with DESeq2
+
+- **[REQUIRED]** Now that we've loaded the data into a `DESeqDataSet` with the annotations we want, running the analysis is very easy.
+
+```{r, echo = TRUE, message = FALSE}
+analyzed <- DESeq(airway_deseq)
+res <- results(analyzed, alpha = 0.05)
+```
+
+- `DESeq` takes a `DESeqDataSet` and runs the analysis on it
+  - If you haven't already run normalization, it will do that for you.
+- `alpha` : 5% false discovery rate for 95% confidence ($p$ = 0.95)
+
+### Cleaning the results from DESeq2
+
+- By default the log2FoldChange looks at the change *from* dexamethasone treatment *to* untreated.
+- But this isn't intuitive: we would expect the untreated samples to be the reference, and changes in expression 
+
+- **[REQUIRED]** Since log2FoldChange is just a logarithm, we use the formula log(treat/untreat) = -log(untreat/treat):
+
+```{r, echo = TRUE, message = FALSE}
+res$log2FoldChange <- -1 * res$log2FoldChange
+```
+
+
+### DESeq2 results
+
+We can view a quick summary of results:
+\small
+```{r, echo=TRUE}
+summary(res)
+```
+\normalsize
+
+### Explaining the result summary
+
+- `LFC` is the **log-fold change,** also called the **log2FoldChange** a logarithmic ratio which describes how much the gene expression increased or decreased after dexamethasone treatment
+    - LFC = 0.0 : expression unchanged
+    - LFC = 1.0 : expression doubled
+    - LFC = -1.0 : expression halved
+- `adjusted p-value` is the $p$-value we are interested in for the statistical test
+
+- The results tell us that
+  - 2211 genes were *significantly* up-regulated
+  - 1817 were *significantly* down-regulated
+
+\normalsize
+
+
+### Viewing specific results
+
+Let's look at the two genes we were studying earlier:
+
+\small
+```{r,echo=TRUE}
+res["SCYL3",]
+```
+
+### Viewing specific results
+
+- `baseMean` is the average (normalized) expression across samples
+
+- `log2FoldChange` is the same as LFC above, but for this specific gene
+
+- `lfcSE` is the standard error in the log2FoldChange (and a parameter to the adjusted p-value)
+
+### Viewing specific results
+
+- `stat` is the *Wald statistic* and is equal to `log2FoldChange`/`lfcSE`. It is used by DESeq in performing the $t$-test and is not something we will use directly.
+- `pvalue` is the normal $p$-value you would get by doing the white noise statistical test
+- `padj` is the adjusted $p$-value you need to use to account for the error in log2FoldChange (lfcSE)
+
+
+### Viewing specific results
+
+- Let's also look at CRISPLD2, the gene we knew was upregulated under dexamethasone treatment:
+
+\scriptsize
+```{r,echo=TRUE}
+res["CRISPLD2",]
+```
+
+### Cleaning the results
+
+- Note that if the gene was not expressed at all, we can't calculate a $p$-value.
+- If there isn't a $p$-value, the record in `res` is saved as `NA`.
+- **[REQUIRED]** For ease of calculation, we should remove all the values with `padj = NA`:
+
+```{r, echo = TRUE}
+results_no_na <- na.omit(res)
+```
+
+`na.omit` takes data and removes any rows that have NA values.
+
+### QC of finished results
+
+- A robust way to spot-check is with an MA-plot, which plots the log fold change against the average expression for each gene:
+
+```{r, echo = TRUE, eval = FALSE}
+plotMA(results_no_na)
+```
+
+
+### QC of finished results
+
+```{r, fig.height = 6, echo=FALSE}
+plotMA(results_no_na)
+```
+
+\small
+
+**Note** Red dots are genes that are differentially expressed, and gray are not significantly differentially expressed. The red arrows at the top and bottom simply indicate that the LFC exceeds the scale of the graph.
+
+### Good MA plot vs. bad MA plot
+
+- The main assumption of the experiment: **most genes are not differentially regulated**
+- This means that the MA plot should be distributed equally around the x axis
+- If there is another trend, this probably indicates badly normalized data.
+
+### Good MA plot vs. bad MA plot
+
+\begincols
+
+  \begincol{.48\textwidth}
+```{r}
+plotMA(results_no_na)
+```
+  \endcol
+
+  \begincol{.48\textwidth}
+![](images/badmaplot.png)
+(Example of a bad MA plot from http://www.nathalievialaneix.eu/doc/pdf/tutorial-rnaseq.pdf)
+  \endcol
+\endcols
+
+### Counting the number of differentially expressed genes
+
+- A gene is differentially expressed if its adjusted $p$-value is less than 0.05.
+
+- **[REQUIRED]** To limit our results only to differentially-expressed genes:
+
+```{r, echo = TRUE}
+significant_de_genes <- 
+  results_no_na[results_no_na$padj <= 0.05,]
+```
+
+- To quickly get a count:
+
+```{r, echo = TRUE, eval = TRUE}
+length(rownames(significant_de_genes))
+```
+
+### Filtering and summarizing the results
+
+- Let's filter to the top 10% of differentially expressed genes (as measured by $padj$)
+\small
+
+- **[REQUIRED]** We use the built-in `quantile` function:
+
+```{r, echo=TRUE}
+top10percent_de_genes <-
+  significant_de_genes[significant_de_genes$padj <=
+               quantile((significant_de_genes$padj),
+                         prob = 0.1),]
+```
+
+- `quantile` takes a vector of numbers and a probability, and returns the quantile mapping to that probability
+- `quantile((significant_de_genes$padj),prob = 0.1)` gives the 10% **lowest** $padj$ value in our analysis
+- Then we filter for $padj$ that's less than or equal to this value.
+
+This limits us to 400 genes.
+
+### Outline
+
+- Intro to R/RStudio**
+- Overview of RNA-seq experiments
+- Differential expression analysis in R
+- **Pathway analysis**
+- Exercise: preparing data from GEO for analysis
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.6\textheight]{images/Sticker_RStudio_RNASeq_50pct.png} 
+\end{figure}
+
+### Downstream analysis: biological pathway representation
+
+- Our list of the top 10% differentially expressed genes is just the symbols and $p$-values.
+- We would like to include information about which **biological pathways** the highly differentially expressed genes are involved in.
+- We use the Gene Ontology database, which has a convenient Bioconductor interface, along with the `clusterProfiler` tool.
+
+### Downstream analysis: biological pathway representation
+
+- Use the Gene Ontology database to map genes in `top10percent_de_genes` to biological pathways
+- Use the `clusterProfiler` tool to run a Fisher's exact test on the representation of the pathways in this list:
+
+\begin{table}
+\centering
+\caption{Example groupings of genes into functional categories}
+\begin{tabular}{|c|c|c|c|}
+\hline
+Gene category & All Genes & Top 10\% DE & Over-represented? \\ \hline
+Ca channel regulation & 50/10500 & 4/100 & Unlikely \\ \hline
+Mg ion binding & 100/10500 & 53/100 & Likely \\ \hline
+DNA recombinase & 75/10500 & 6/100 & Unlikely \\ \hline
+\end{tabular}
+\end{table}
+
+### Downstream analysis: biological pathway representation
+
+- What we need to do is
+  - label the rows (aka genes) with a Gene Ontology ID
+  - run this through `clusterProfiler`'s tools
+
+- See the take-home notes for details.
+  - If we have time at the end, we can run this ourselves today.
+  - For now I will just present the code and results.
+  
+### Annotating the top 10% genes with Gene Ontology IDs
+**[REQUIRED]**
+
+```{r, eval = TRUE, echo = TRUE, message = FALSE}
+library(DOSE)
+library(pathview)
+library("clusterProfiler")
+library(AnnotationDbi)
+library(org.Hs.eg.db)
+
+top10percent_de_genes$go <- mapIds(org.Hs.eg.db,
+                     keys=row.names(top10percent_de_genes),
+                     column="GO",
+                     keytype="SYMBOL",
+                     multiVals="first")
+```
+
+### Annotating the top 10% genes with Gene Ontology Terms
+
+**[REQUIRED]**
+
+```{r, eval = TRUE, echo = TRUE, message = FALSE}
+
+library("GO.db")
+
+top10percent_de_genes$goterm <- mapIds(GO.db,
+                     keys=top10percent_de_genes$go,
+                     column="TERM",
+                     keytype="GOID",
+                     multiVals="first")
+```
+
+### Running enrichGO
+
+**[REQUIRED]**
+
+```{r, eval = TRUE, echo = TRUE, message = FALSE}
+
+genes_sig <- 
+  rowData(
+    airway_deseq[rownames(top10percent_de_genes),])$ensembl
+enrichment_analysis_bp <- 
+  enrichGO(gene = genes_sig,
+           universe = rowData(airway)$ensembl,
+           keyType = "ENSEMBL",
+           OrgDb = org.Hs.eg.db,
+           ont="BP",
+           pAdjustMethod = "BH",
+           pvalueCutoff = 0.05,
+           readable=TRUE)
+```
+
+
+### Finding the most differentially-expressed pathway
+
+**[REQUIRED]**
+
+```{r, eval = TRUE, echo = TRUE, message = FALSE}
+
+enrichment_analysis_ordered <-
+  enrichment_analysis_bp[
+    order(enrichment_analysis_bp$p.adjust)]
+
+```
+
+### Getting the genes in the extracellular matrix organization pathway
+
+**[REQUIRED]**
+
+```{r, eval = TRUE, echo = TRUE, message = FALSE}
+
+ensembl_ids_in_path <- mapIds(org.Hs.eg.db,
+                        keys=c("GO:0030198"),
+                     column="ENSEMBL",
+                     keytype="GO",
+                     multiVals="list")
+
+```
+
+### Pull the normalized expression for genes in this pathway
+
+**[REQUIRED]**
+
+- We also match this up with the padj and the cross-sample average log2FoldChange.
+
+\small
+
+```{r, eval = TRUE, echo = TRUE, message = FALSE}
+
+pathway_expression <- 
+  airway_deseq[rowData(airway)$ensembl %in%
+                 ensembl_ids_in_path[[1]],]
+
+rowData(pathway_expression)$padj <- 
+  res[rownames(pathway_expression),]$padj
+rowData(pathway_expression)$lfc <-
+  res[rownames(pathway_expression),]$log2FoldChange
+pathway_expression <-
+  pathway_expression[order(rowData(pathway_expression)$padj),]
+```
+
+### Two data visualization libraries
+
+**[REQUIRED]**
+
+```{r, eval = TRUE, echo = TRUE, message = FALSE}
+library("pheatmap")
+library("RColorBrewer")
+```
+
+### Generating the data for the heatmap
+
+**[REQUIRED]**
+
+```{r, eval = TRUE, echo = TRUE, message = FALSE}
+mat <- 
+  head(counts(pathway_expression,normalized=TRUE),15)
+N61311trt_lfc <- 
+  log2(mat[,"N61311-t"]/mat[,"N61311-u"])
+N052611_lfc <- 
+  log2(mat[,"N052611-t"]/mat[,"N052611-u"])
+N080611_lfc <- 
+  log2(mat[,"N080611-t"]/mat[,"N080611-u"])
+N061011_lfc <- 
+  log2(mat[,"N061011-t"]/mat[,"N061011-u"])
+```
+
+### Generating the data for the heatmap
+
+**[REQUIRED]**
+
+```{r, eval = TRUE, echo = TRUE, message = FALSE}
+mat <- 
+  cbind(N61311trt_lfc,
+        N052611_lfc,
+        N080611_lfc,
+        N061011_lfc)
+mat[!is.finite(mat)] <- NA
+mat <- na.omit(mat)
+```
+
+### dotplot of top 15 overrepresented pathways
+
+
+```{r, echo=TRUE, eval = FALSE}
+dotplot(enrichment_analysis_bp, showCategory = 15)
+```
+
+### dotplot of top 15 overrepresented pathways
+
+```{r, echo=FALSE, message = FALSE}
+dotplot(enrichment_analysis_bp, showCategory = 15)
+```
+
+### Heatmap of results
+
+```{r, echo = TRUE, eval = FALSE}
+breaklist1 = seq(-4.5, 0, by = 0.045)
+breaklist2 = seq(0.03,3.18, by = 0.03)
+breakslist =  c(breaklist1, breaklist2)
+pheatmap(mat, 
+         main = title,
+         fontsize = 7, 
+         treeheight_row = 0, 
+         treeheight_col = 0,
+         color = colorRampPalette(
+           rev(brewer.pal(
+             n = 7, name = "RdYlBu"))
+           )(length(breakslist)),
+         breaks = breakslist)
+```
+
+### Heatmap of results
+
+```{r, fig.height = 6, echo = FALSE, eval = TRUE}
+breaklist1 = seq(-4.5, 0, by = 0.05)
+breaklist2 = seq(0.25,3.1, by = 0.05)
+breakslist =  c(breaklist1, breaklist2)
+pheatmap(mat, main = "15 most differentially expressed genes in the extracellular matrix organization pathway",fontsize = 7, treeheight_row = 0, treeheight_col = 0,
+         color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(length(breakslist)),
+         breaks = breakslist)
+```
+
+### Alternatives to DESeq2
+
+- Bioconductor does offer some alternatives to `DESeq2` for differential expression analysis:
+  - edgeR
+  - limma
+  
+- All three perform the same statistical test for the same problem
+- All three integrate with other Bioconductor packages (`SummarizedExperiment`, `GenomicRanges`, etc)
+
+### Alternatives to DESeq2
+
+\small
+
+\begin{table}
+\centering
+\caption{Other Bioconductor tools for differential expression analysis}
+\begin{tabular}{|c|c|c|}
+\hline
+Tool name & Normalization & Randomness Model \\ \hline
+DESeq2 & Geo. mean & Negative binomial \\ \hline
+edgeR & Trimmed range of means & Negative binomial \\ \hline
+limma & Quantile scaling & Negative binomial \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}
+\begin{tabular}{|c|c|}
+\hline
+Tool name & Dispersion estimate\\ \hline
+DESeq2 & Est. gene=wise first, then adjust to trend \\ \hline
+edgeR & Est. trend first, then adjust to observed genew-wide \\ \hline
+limma & Downweight high-variance genes \\ \hline
+\end{tabular}
+\end{table}
+
+### Alternatives to DESeq2
+
+- randomness model is the same
+- data preparation is slightly different
+- highly differentially-expressed genes should agree between the three tools
+- Edge cases may vary between the tools
+- **Normalizing and estimating dispersions for RNA-seq data is still an open problem**
+- You aren't forced to use edgeR's normalization if you use edgeR! You can supply your own.
+
+### Outline
+
+- Intro to R/RStudio**
+- Overview of RNA-seq experiments
+- Differential expression analysis in R
+- Pathway analysis
+- **Exercise: preparing data from GEO for analysis**
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.6\textheight]{images/Sticker_RStudio_RNASeq_75pct.png} 
+\end{figure}
+
+### Unformatted GEO data
+
+- We were looking at the `airway` dataset because it was especially curated by Bioconductor as a way to learn
+- But we can also download data from different RNA-seq experiments, provided we have the GEO accession number.
+
+### Using GEOQuery to get NCBI GEO data
+
+- **[REQUIRED]** First, load the GEOquery package:
+
+```{r, results="hide", message=FALSE, echo=TRUE, eval=FALSE}
+library("GEOquery")
+
+```
+
+- GEOquery has functions for accessing and parsing data from GEO.
+
+- Then we use the getGEO function, along with the GEO accession number, to download the data.
+
+
+### Loading GEO data
+
+- For this example, let's look at GSE119290:
+
+```{r, echo=TRUE, message = FALSE, eval = FALSE}
+library("Biobase")
+library("GEOquery")
+geoq_result <- getGEO("GSE119290")
+
+gse <- geoq_result[[1]]
+```
+
+Why do we use `geoq_result[[1]]`?
+
+  - `getGEO` returns a *list* of data structures (in this case of length 1)
+  - **GSE** : General Summarized Experiment, like the RangedSummarizedExperiment but less structured
+
+### Exploring the GSE data
+\scriptsize
+```{r, echo=TRUE, eval = FALSE}
+show(gse)
+```
+
+### Exploring the GSE data: when things don't work
+
+- This data has some problems:
+  - `assayData: 0 features, 44 samples` suggests that there are no rows!
+
+- What seems to have happened in this case is that the researcher uploaded the sample expression values, but did not include the matrix of all samples
+
+### Exploring the GSE data: when things don't work
+
+- Since we don't know exactly how the researcher stored this information, we will need to look at the actual data
+
+- If we create the matrix of counts, we can create a SummarizedExperiment, and then a DESeqDataSet to run differential expression analysis
+
+- A big part of working with R tools (especially Bioconductor) is parsing data in the correct format for consumption by 3rd-party tools.
+
+### Downloading supplemental GEO data
+
+- **[REQUIRED]** If the processed GEO data isn't correctly formatted, we must download the raw data:
+
+```{r, echo = TRUE, message = FALSE, results = FALSE, eval = FALSE}
+supp <- getGEOSuppFiles("GSE119290")
+```
+
+- These data will be downloaded in your working directory, in a subfolder with the GEO accession numbers.
+
+- If you type `supp` at the Console, you will see a list of the files, with some extra data.
+  - `row.names(supp)` will return the file paths.
+
+\tiny
+```{r, echo = TRUE, message = FALSE, eval = FALSE}
+row.names(supp)
+```
+
+### Look at the downloaded data
+
+- We don't really know what sort of data we got in the supplemental files
+- Let's take a look at them: open the folder and unzip both downloaded files.
+    - There are two files: "gene_counts.txt" and "gene_normalized.txt"
+- Since they're just plain text, open them in TextEdit / etc
+- In this case, these matrices are tab-delimited tables.
+    - But they could be CSVs, or some other data storage format.
+    - When interacting with unfamiliar data, **LOOK AT IT.**
+
+### Building the count matrix as an R data frame
+
+- For this example, the researchers actually did provide the full count matrices in the supplemental files.
+- There seems to have been a disconnect in annotating with metadata for the full SummarizedExperiment.
+
+```{r, echo = TRUE, message = FALSE, results = FALSE, eval = FALSE}
+data_raw <-
+  read.table(row.names(supp)[1], sep = "\t")
+
+```
+
+- Sometimes GEO doesn't have the full count matrix, but rather the results by-sample (aka the columns).
+
+
+
+### Building the SummarizedExperiment from the data frame
+
+- With `data_raw` we have the "assay" of our SummarizedExperiment.
+- **[REQUIRED]** We use a *casting function*, `phenoData`, to convert the phenotypic data from `gse` into a data frame:
+
+```{r, message = FALSE, echo=TRUE, eval = FALSE}
+pdata <- phenoData(gse)
+colData <- as(pdata, 'data.frame')
+```
+
+### Building the SummarizedExperiment from the data frame
+
+- **[REQUIRED]** We need to convert data_raw from a data frame to a matrix, which is a common annoyance:
+
+```{r, message = FALSE, results=FALSE, echo=TRUE, eval = FALSE}
+data_matrix <- as.matrix(data_raw)
+```
+
+- **[REQUIRED]** Then we create a SummarizedExperiment of the data:
+
+```{r, message = FALSE, eval = FALSE, echo=TRUE}
+se <-
+  SummarizedExperiment(
+      assays = list(counts = data_matrix),
+      colData = colData)
+```
+
+### General approach to building SummarizedExperiments from GEO data
+
+- Try plain `getGEO` and look at the returned SummarizedExperiment.
+- If `assayData` is empty or something else seems off, the data wasn't parsed correctly:
+    - Look at `getGEOSuppFiles` and download the expression data as text files
+    - Use `read.table` to parse the text files into an R data frame
+    - Convert this into a matrix of counts (just like `assay(airway)`)
+    - Load this matrix into a SummarizedExperiment
+
+### Datasets to try
+
+- Here are some example homo sapien RNA-seq experiments available for download
+  - GSE130036 : Long non-coding and protein-coding RNA profiling using strand-specific RNA-seq in human hypertrophic cardiomyopathy
+  - GSE121534 : Differentiation enhances Zika virus infection in neuronal brain cells
+  - GSE119290 : Expression-based drug screening of neural progenitor cells from individuals with schizophrenia [RNA-seq]
+  - GSE111357 : Osteoarthritis RNA Sequencing from ground cartilage samples
+
+- For the remainder of the class we will try loading these into SummarizedExperiments.
+- Pick an accession number, use `getGEO`, and try to get to the point where you can run `DESeq` on the dataset.
+
+### Datasets to try
+
+- GSE130036 : Long non-coding and protein-coding RNA profiling using strand-specific RNA-seq in human hypertrophic cardiomyopathy
+- GSE121534 : Differentiation enhances Zika virus infection in neuronal brain cells
+- GSE119290 : Expression-based drug screening of neural progenitor cells from individuals with schizophrenia [RNA-seq]
+- GSE111357 : Osteoarthritis RNA Sequencing from ground cartilage samples
+
+
+\begin{figure}
+\includegraphics[keepaspectratio,width=\textwidth, height=.4\textheight]{images/Sticker_RStudio_RNASeq.png} 
+\end{figure}
